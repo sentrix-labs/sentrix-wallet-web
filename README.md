@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sentrix Wallet
 
-## Getting Started
+Web wallet UI for the Sentrix blockchain (Chain ID 7119).
 
-First, run the development server:
+**Live:** https://sentrix-wallet.sentriscloud.com
+
+## Features
+
+- Create new wallet (ECDSA secp256k1 key generation)
+- Import existing wallet via private key
+- Dashboard — SRX and SNTX token balances
+- Send SRX (native token) with confirmation dialog
+- Send SNTX (SRX-20 token) with confirmation dialog
+- Transaction history
+
+## Tech Stack
+
+- Next.js 16 + React 19 + TypeScript
+- @noble/secp256k1 + @noble/hashes (ECDSA signing, keccak256, sha256)
+- Zustand (state management, private key NOT persisted to storage)
+- Tailwind CSS 4
+- Axios (API client)
+
+## Security
+
+- Private key never sent over network — only signature + public key
+- Private key excluded from localStorage (only address persisted)
+- Integer arithmetic for amount calculations (no floating-point precision loss)
+- Confirmation dialog before every transaction
+- Clipboard auto-cleared 60s after private key copy
+- Private key bytes zeroed after signing
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build (standalone)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Docker + GitHub Actions CI/CD:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+git push master → GitHub Actions → Docker build → GHCR → SSH deploy to VPS
+```
 
-## Learn More
+### Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Value |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | `https://sentrix-api.sentriscloud.com` |
+| `NEXT_PUBLIC_CHAIN_ID` | `7119` |
+| `NEXT_PUBLIC_CHAIN_NAME` | `Sentrix` |
+| `NEXT_PUBLIC_NATIVE_TOKEN` | `SRX` |
+| `NEXT_PUBLIC_SNTX_CONTRACT` | `SRX20_16d17385cad3ef46d63c93f4daeb8b2f7571afd3` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+sentrix-wallet/
+├── src/
+│   ├── app/              # Next.js app router
+│   │   ├── page.tsx      # Landing → redirect /wallet
+│   │   ├── layout.tsx    # Root layout + Toaster
+│   │   └── wallet/
+│   │       └── page.tsx  # Wallet page (WalletSetup or Dashboard)
+│   ├── components/
+│   │   ├── WalletSetup.tsx   # Create/import wallet
+│   │   ├── Dashboard.tsx     # Balances + navigation
+│   │   ├── SendSRX.tsx       # Send native SRX
+│   │   ├── SendSNTX.tsx      # Send SNTX token
+│   │   └── TxHistory.tsx     # Transaction history
+│   ├── lib/
+│   │   ├── crypto.ts     # ECDSA signing, address derivation, payload builder
+│   │   ├── api.ts        # Blockchain API client
+│   │   └── store.ts      # Zustand wallet store
+│   └── types/
+│       └── index.ts      # TypeScript interfaces
+├── Dockerfile            # Multi-stage Node 20 Alpine
+├── docker-compose.yml    # Production container config
+├── nginx.conf            # Reverse proxy reference config
+└── .github/workflows/
+    └── deploy.yml        # CI/CD: build → GHCR → VPS deploy
+```
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Private — SentrisCloud
