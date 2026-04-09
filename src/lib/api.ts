@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { ChainInfo, AddressInfo, TokenBalance, TxHistoryItem } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sentrix-api.sentriscloud.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://103.150.92.25:8545';
 
 export const api = axios.create({
   baseURL: API_URL,

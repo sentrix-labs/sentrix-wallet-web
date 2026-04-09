@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useWalletStore } from '@/lib/store';
 import { getNonce, sendTransaction } from '@/lib/api';
-import { buildSigningPayload, signTransaction, buildTxid, privateKeyToPublicKey } from '@/lib/crypto';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { signTransaction, buildTxid, privateKeyToPublicKey } from '@/lib/crypto';
+import { ArrowLeft, Loader2, Check, Copy, Send, Clipboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 7119);
 const SNTX_CONTRACT = process.env.NEXT_PUBLIC_SNTX_CONTRACT || '';
 const MIN_FEE = 10000;
+const SENTRI = 100_000_000;
 const TOKEN_OP_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export default function SendSNTX({ onBack }: { onBack: () => void }) {
@@ -18,6 +19,20 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
   const [amount, setAmount] = useState('');
   const [sending, setSending] = useState(false);
   const [txid, setTxid] = useState('');
+  const [txCopied, setTxCopied] = useState(false);
+
+  const handlePaste = async () => {
+    const text = await navigator.clipboard.readText();
+    setToAddress(text.trim());
+  };
+
+  const copyTxid = () => {
+    navigator.clipboard.writeText(txid);
+    setTxCopied(true);
+    setTimeout(() => setTxCopied(false), 2000);
+  };
+
+  const feeDisplay = (MIN_FEE / SENTRI).toFixed(4);
 
   const handleSend = async () => {
     if (!address || !privateKey) return;
@@ -27,7 +42,7 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
     }
     const tokenAmount = parseInt(amount);
     if (isNaN(tokenAmount) || tokenAmount <= 0) {
-      toast.error('Invalid amount');
+      toast.error('Enter a valid amount');
       return;
     }
 
@@ -35,108 +50,129 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
     try {
       const nonce = await getNonce(address);
       const timestamp = Math.floor(Date.now() / 1000);
-
       const tokenOp = JSON.stringify({
-        op: 'transfer',
-        contract: SNTX_CONTRACT,
-        to: toAddress,
-        amount: tokenAmount,
+        op: 'transfer', contract: SNTX_CONTRACT, to: toAddress, amount: tokenAmount,
       });
 
       const payload = {
-        from: address,
-        to: TOKEN_OP_ADDRESS,
-        amount: 0,
-        fee: MIN_FEE,
-        nonce,
-        data: tokenOp,
-        timestamp,
-        chain_id: CHAIN_ID,
+        from: address, to: TOKEN_OP_ADDRESS, amount: 0, fee: MIN_FEE,
+        nonce, data: tokenOp, timestamp, chain_id: CHAIN_ID,
       };
 
       const signature = await signTransaction(payload, privateKey);
       const publicKey = privateKeyToPublicKey(privateKey);
       const computedTxid = buildTxid(payload);
 
-      const tx = {
-        txid: computedTxid,
-        from_address: address,
-        to_address: TOKEN_OP_ADDRESS,
-        amount: 0,
-        fee: MIN_FEE,
-        nonce,
-        data: tokenOp,
-        timestamp,
-        chain_id: CHAIN_ID,
-        signature,
-        public_key: publicKey,
-      };
+      const result = await sendTransaction({
+        txid: computedTxid, from_address: address, to_address: TOKEN_OP_ADDRESS,
+        amount: 0, fee: MIN_FEE, nonce, data: tokenOp, timestamp,
+        chain_id: CHAIN_ID, signature, public_key: publicKey,
+      });
 
-      const result = await sendTransaction(tx);
       if (result.success) {
         setTxid(computedTxid);
-        toast.success('SNTX transfer submitted!');
+        toast.success('SNTX sent!');
       } else {
         toast.error(result.error || 'Failed');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to send';
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : 'Failed to send');
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <button onClick={onBack} className="flex items-center gap-1 text-zinc-500 hover:text-white mb-4 text-sm">
+    <div className="min-h-screen flex items-center justify-center p-5" style={{ background: '#F8FAFC' }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 mb-5 text-sm font-medium transition-colors active:scale-95" style={{ color: '#64748B' }}>
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Send SNTX</h2>
-
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">To Address</label>
-            <input
-              value={toAddress}
-              onChange={(e) => setToAddress(e.target.value)}
-              placeholder="0x..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white text-sm font-mono focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">Amount (SNTX tokens)</label>
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              type="number"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div className="bg-zinc-800/50 rounded-lg p-3 text-xs text-zinc-500">
-            Gas fee: 0.0001 SRX | Token transfer processed on next block
-          </div>
-
-          {txid ? (
-            <div className="bg-emerald-950/50 border border-emerald-800 rounded-lg p-3">
-              <p className="text-xs text-emerald-400">SNTX transfer submitted!</p>
-              <p className="text-xs text-zinc-400 font-mono mt-1 break-all">{txid}</p>
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', border: '1px solid #E2E8F0' }}>
+          {/* Gradient Header */}
+          <div className="px-6 py-5" style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <Send className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Send SNTX</h2>
+                <p className="text-white/70 text-xs">Token transfer</p>
+              </div>
             </div>
-          ) : (
-            <button
-              onClick={handleSend}
-              disabled={sending}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {sending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {sending ? 'Signing & Sending...' : 'Send SNTX'}
-            </button>
-          )}
+          </div>
+
+          <div className="px-6 py-5 space-y-4">
+            {/* To */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#64748B' }}>Recipient</label>
+              <div className="relative">
+                <input
+                  value={toAddress}
+                  onChange={(e) => setToAddress(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full rounded-xl p-3.5 pr-12 text-sm font-mono focus:outline-none transition-all"
+                  style={{ background: '#F1F5F9', border: '2px solid transparent', color: '#0F172A' }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                />
+                <button onClick={handlePaste} className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90" style={{ background: '#E2E8F0' }}>
+                  <Clipboard className="w-3.5 h-3.5" style={{ color: '#64748B' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#64748B' }}>Amount (SNTX)</label>
+              <input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                type="number"
+                className="w-full rounded-xl p-3.5 text-sm focus:outline-none transition-all"
+                style={{ background: '#F1F5F9', border: '2px solid transparent', color: '#0F172A' }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'transparent'}
+              />
+            </div>
+
+            {/* Fee */}
+            <div className="rounded-xl p-4" style={{ background: '#F8FAFC' }}>
+              <div className="flex justify-between text-xs">
+                <span style={{ color: '#94A3B8' }}>Gas fee (SRX)</span>
+                <span style={{ color: '#64748B' }}>{feeDisplay} SRX</span>
+              </div>
+              <p className="text-xs mt-1.5" style={{ color: '#CBD5E1' }}>Processed on next block</p>
+            </div>
+
+            {/* Result */}
+            {txid ? (
+              <div className="rounded-xl p-4" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#7c3aed' }}>
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: '#6D28D9' }}>SNTX Sent!</span>
+                </div>
+                <button onClick={copyTxid} className="flex items-center gap-1 text-xs font-mono break-all transition-colors" style={{ color: '#7C3AED' }}>
+                  {txid.slice(0, 20)}...{txid.slice(-8)}
+                  {txCopied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={sending}
+                className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sending ? 'Sending...' : 'Send SNTX'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

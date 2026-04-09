@@ -28,12 +28,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950">
+      <body className="min-h-full flex flex-col" style={{ background: '#F8FAFC' }}>
         {children}
         <Toaster
           position="top-center"
           toastOptions={{
-            style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', fontSize: '14px' },
+            style: {
+              background: '#FFFFFF',
+              color: '#0F172A',
+              border: '1px solid #E2E8F0',
+              fontSize: '14px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            },
           }}
         />
       </body>

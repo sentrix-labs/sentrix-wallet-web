@@ -63,7 +63,6 @@ export async function signTransaction(
   const payloadStr = buildSigningPayload(payload);
   const msgHash = sha256(new TextEncoder().encode(payloadStr));
   const sig = await secp.signAsync(msgHash, hexToBytes(privateKeyHex), { lowS: true });
-  // sig may be Signature object or Uint8Array depending on version
   const sigBytes = typeof sig === 'object' && 'toCompactRawBytes' in sig
     ? (sig as { toCompactRawBytes: () => Uint8Array }).toCompactRawBytes()
     : sig as Uint8Array;
