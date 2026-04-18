@@ -10,7 +10,7 @@ Web wallet UI for the Sentrix blockchain (Chain ID 7119).
 - Import existing wallet via private key
 - Dashboard — SRX and SNTX token balances
 - Send SRX (native token) with confirmation dialog
-- Send SNTX (SRX-20 token) with confirmation dialog
+- Send SNTX (SRC-20 token) with confirmation dialog
 - Transaction history
 
 ## Tech Stack
