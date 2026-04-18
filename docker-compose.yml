@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   sentrix-wallet:
-    image: ghcr.io/satyakwok/sentrix-wallet:latest
+    image: ghcr.io/sentrix-labs/sentrix-wallet:latest
     container_name: sentrix-wallet
     restart: unless-stopped
     ports:

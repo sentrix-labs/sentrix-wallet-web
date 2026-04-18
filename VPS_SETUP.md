@@ -34,7 +34,7 @@ sudo certbot --nginx -d sentrix-wallet.sentriscloud.com -d sentrix-api.sentriscl
 
 ## 6. Add GitHub Secrets
 
-Go to: github.com/satyakwok/sentrix-wallet → Settings → Secrets → Actions
+Go to: github.com/sentrix-labs/sentrix-wallet → Settings → Secrets → Actions
 
 | Secret | Value |
 |---|---|

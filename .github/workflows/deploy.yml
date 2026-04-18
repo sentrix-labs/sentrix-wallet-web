@@ -56,6 +56,6 @@ jobs:
           script: |
             cd /home/sentriscloud/projects/sentrix-wallet
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/satyakwok/sentrix-wallet:latest
+            docker pull ghcr.io/sentrix-labs/sentrix-wallet:latest
             docker compose up -d --force-recreate
             docker image prune -f
