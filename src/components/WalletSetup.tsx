@@ -174,12 +174,19 @@ export default function WalletSetup() {
             </div>
 
             <div className="px-6 pb-8 space-y-4">
-              {/* Warning */}
-              <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#FFF7ED', border: '1px solid #FED7AA' }}>
-                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#EA580C' }} />
+              {/* Warning — self-custody reality check */}
+              <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#FEF2F2', border: '1px solid #FCA5A5' }}>
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#C2410C' }}>Save your private key!</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#EA580C' }}>Write it down or copy it. You won&apos;t see it again.</p>
+                  <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>Your key, your responsibility.</p>
+                  <p className="text-xs mt-1" style={{ color: '#B91C1C' }}>
+                    Save this private key somewhere safe (password manager, offline backup).
+                    It&apos;s the <strong>only</strong> way to access your funds.
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: '#B91C1C' }}>
+                    <strong>Lost key = lost wallet.</strong> There is no recovery, no password
+                    reset, no support line. Nobody — including Sentrix — can restore it for you.
+                  </p>
                 </div>
               </div>
 
