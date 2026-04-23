@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { ChainInfo, AddressInfo, TokenBalance, TxHistoryItem } from '@/types';
+import type { ChainInfo, AddressInfo, TokenBalance, TokenInfo, TxHistoryItem } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://103.150.92.25:8545';
 
@@ -25,6 +25,11 @@ export async function getNonce(address: string): Promise<number> {
 
 export async function getTokenBalance(contract: string, address: string): Promise<TokenBalance> {
   const res = await api.get(`/tokens/${contract}/balance/${address}`);
+  return res.data;
+}
+
+export async function getTokenInfo(contract: string): Promise<TokenInfo> {
+  const res = await api.get(`/tokens/${contract}`);
   return res.data;
 }
 

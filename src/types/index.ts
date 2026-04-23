@@ -24,6 +24,17 @@ export interface TokenBalance {
   balance: number;
 }
 
+export interface TokenInfo {
+  contract_address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  total_supply: number;
+  max_supply: number;
+  owner: string;
+  holders: number;
+}
+
 export interface TxHistoryItem {
   txid: string;
   direction: 'in' | 'out' | 'reward';

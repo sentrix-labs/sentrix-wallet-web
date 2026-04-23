@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useWalletStore } from '@/lib/store';
 import { getNonce, sendTransaction } from '@/lib/api';
-import { signTransaction } from '@/lib/crypto';
+import { signTransaction, isValidAddress } from '@/lib/crypto';
+import { parseAmount, formatAmount } from '@/lib/amount';
 import { ArrowLeft, Loader2, Check, Copy, Send, Clipboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,7 +20,7 @@ function sentriToSRX(sentri: number): string {
   return frac ? `${whole}.${frac}` : `${whole}`;
 }
 
-export default function SendSNTX({ onBack }: { onBack: () => void }) {
+export default function SendSNTX({ onBack, decimals, symbol }: { onBack: () => void; decimals: number; symbol: string }) {
   const { address, privateKey } = useWalletStore();
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -40,12 +41,22 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
   };
 
   const feeDisplay = sentriToSRX(MIN_FEE);
-  const tokenAmount = parseInt(amount) || 0;
+  const tokenAmount = amount ? parseAmount(amount, decimals) : 0;
+
+  const resetForm = () => {
+    setTxid('');
+    setToAddress('');
+    setAmount('');
+  };
 
   const handleSend = () => {
     if (!address || !privateKey) return;
-    if (!toAddress.startsWith('0x') || toAddress.length !== 42) {
+    if (!isValidAddress(toAddress)) {
       toast.error('Invalid address');
+      return;
+    }
+    if (toAddress.toLowerCase() === address.toLowerCase()) {
+      toast.error('Cannot send to your own address');
       return;
     }
     if (isNaN(tokenAmount) || tokenAmount <= 0) {
@@ -135,12 +146,13 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
 
             {/* Amount */}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#64748B' }}>Amount (SNTX)</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#64748B' }}>Amount ({symbol})</label>
               <input
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-                type="number"
+                placeholder={decimals > 0 ? '0.00' : '0'}
+                type="text"
+                inputMode="decimal"
                 className="w-full rounded-xl p-3.5 text-sm focus:outline-none transition-all"
                 style={{ background: '#F1F5F9', border: '2px solid transparent', color: '#0F172A' }}
                 onFocus={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
@@ -159,16 +171,25 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
 
             {/* Result */}
             {txid ? (
-              <div className="rounded-xl p-4" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#7c3aed' }}>
-                    <Check className="w-4 h-4 text-white" />
+              <div className="space-y-3">
+                <div className="rounded-xl p-4" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#7c3aed' }}>
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: '#6D28D9' }}>{symbol} Sent!</span>
                   </div>
-                  <span className="text-sm font-bold" style={{ color: '#6D28D9' }}>SNTX Sent!</span>
+                  <button onClick={copyTxid} className="flex items-center gap-1 text-xs font-mono break-all transition-colors" style={{ color: '#7C3AED' }}>
+                    {txid.slice(0, 20)}...{txid.slice(-8)}
+                    {txCopied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                  </button>
                 </div>
-                <button onClick={copyTxid} className="flex items-center gap-1 text-xs font-mono break-all transition-colors" style={{ color: '#7C3AED' }}>
-                  {txid.slice(0, 20)}...{txid.slice(-8)}
-                  {txCopied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                <button
+                  onClick={resetForm}
+                  className="w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-95"
+                  style={{ background: '#F1F5F9', color: '#64748B' }}
+                >
+                  Send another
                 </button>
               </div>
             ) : (
@@ -179,7 +200,7 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {sending ? 'Sending...' : 'Send SNTX'}
+                {sending ? 'Sending...' : `Send ${symbol}`}
               </button>
             )}
           </div>
@@ -198,7 +219,7 @@ export default function SendSNTX({ onBack }: { onBack: () => void }) {
               </div>
               <div className="flex justify-between">
                 <span style={{ color: '#94A3B8' }}>Amount</span>
-                <span className="font-semibold" style={{ color: '#0F172A' }}>{amount} SNTX</span>
+                <span className="font-semibold" style={{ color: '#0F172A' }}>{formatAmount(tokenAmount, decimals)} {symbol}</span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: '#94A3B8' }}>Fee</span>

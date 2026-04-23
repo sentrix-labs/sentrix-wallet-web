@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useWalletStore } from '@/lib/store';
 import { getAddressInfo, getNonce, sendTransaction } from '@/lib/api';
-import { signTransaction } from '@/lib/crypto';
+import { signTransaction, isValidAddress } from '@/lib/crypto';
 import { ArrowLeft, Loader2, Check, Copy, Send, Clipboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -57,10 +57,20 @@ export default function SendSRX({ onBack }: { onBack: () => void }) {
   const amountSentri = amount ? parseSRXToSentri(amount) : 0;
   const totalDisplay = amountSentri > 0 ? sentriToSRX(amountSentri + MIN_FEE) : '0';
 
+  const resetForm = () => {
+    setTxid('');
+    setToAddress('');
+    setAmount('');
+  };
+
   const handleSend = () => {
     if (!address || !privateKey) return;
-    if (!toAddress.startsWith('0x') || toAddress.length !== 42) {
+    if (!isValidAddress(toAddress)) {
       toast.error('Invalid address');
+      return;
+    }
+    if (toAddress.toLowerCase() === address.toLowerCase()) {
+      toast.error('Cannot send to your own address');
       return;
     }
     if (isNaN(amountSentri) || amountSentri <= 0) {
@@ -180,16 +190,25 @@ export default function SendSRX({ onBack }: { onBack: () => void }) {
 
             {/* Result */}
             {txid ? (
-              <div className="rounded-xl p-4" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#10b981' }}>
-                    <Check className="w-4 h-4 text-white" />
+              <div className="space-y-3">
+                <div className="rounded-xl p-4" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#10b981' }}>
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: '#059669' }}>Sent!</span>
                   </div>
-                  <span className="text-sm font-bold" style={{ color: '#059669' }}>Sent!</span>
+                  <button onClick={copyTxid} className="flex items-center gap-1 text-xs font-mono break-all transition-colors" style={{ color: '#047857' }}>
+                    {txid.slice(0, 20)}...{txid.slice(-8)}
+                    {txCopied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                  </button>
                 </div>
-                <button onClick={copyTxid} className="flex items-center gap-1 text-xs font-mono break-all transition-colors" style={{ color: '#047857' }}>
-                  {txid.slice(0, 20)}...{txid.slice(-8)}
-                  {txCopied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                <button
+                  onClick={resetForm}
+                  className="w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-95"
+                  style={{ background: '#F1F5F9', color: '#64748B' }}
+                >
+                  Send another
                 </button>
               </div>
             ) : (

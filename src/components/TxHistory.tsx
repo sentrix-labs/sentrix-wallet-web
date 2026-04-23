@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useWalletStore } from '@/lib/store';
 import { getTransactionHistory } from '@/lib/api';
 import type { TxHistoryItem } from '@/types';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Coins, Inbox } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Coins, Inbox, Layers } from 'lucide-react';
+
+const TOKEN_OP_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export default function TxHistory({ onBack }: { onBack: () => void }) {
   const { address } = useWalletStore();
@@ -58,43 +60,58 @@ export default function TxHistory({ onBack }: { onBack: () => void }) {
               <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>Send or receive to get started</p>
             </div>
           ) : (
-            <div>
-              {txs.slice(0, 10).map((tx, i) => (
-                <div
-                  key={tx.txid}
-                  className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-50/50"
-                  style={{ borderBottom: i < Math.min(txs.length, 10) - 1 ? '1px solid #F1F5F9' : 'none' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{
-                        background: tx.direction === 'in' ? '#ECFDF5' :
-                                   tx.direction === 'reward' ? '#FFF7ED' : '#FEF2F2',
-                      }}
-                    >
-                      {tx.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" style={{ color: '#10b981' }} /> :
-                       tx.direction === 'reward' ? <Coins className="w-4 h-4" style={{ color: '#F59E0B' }} /> :
-                       <ArrowUpRight className="w-4 h-4" style={{ color: '#EF4444' }} />}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {txs.map((tx, i) => {
+                const isTokenOp = tx.to === TOKEN_OP_ADDRESS && tx.direction === 'out';
+                return (
+                  <div
+                    key={tx.txid}
+                    className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-50/50"
+                    style={{ borderBottom: i < txs.length - 1 ? '1px solid #F1F5F9' : 'none' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{
+                          background: isTokenOp ? '#F5F3FF' :
+                                     tx.direction === 'in' ? '#ECFDF5' :
+                                     tx.direction === 'reward' ? '#FFF7ED' : '#FEF2F2',
+                        }}
+                      >
+                        {isTokenOp ? <Layers className="w-4 h-4" style={{ color: '#7c3aed' }} /> :
+                         tx.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" style={{ color: '#10b981' }} /> :
+                         tx.direction === 'reward' ? <Coins className="w-4 h-4" style={{ color: '#F59E0B' }} /> :
+                         <ArrowUpRight className="w-4 h-4" style={{ color: '#EF4444' }} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                          {isTokenOp ? 'Token Transfer' :
+                           tx.direction === 'reward' ? 'Block Reward' :
+                           tx.direction === 'in' ? `From ${truncate(tx.from)}` :
+                           `To ${truncate(tx.to)}`}
+                        </p>
+                        <p className="text-xs" style={{ color: '#CBD5E1' }}>{timeAgo(tx.block_timestamp)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                        {tx.direction === 'reward' ? 'Block Reward' :
-                         tx.direction === 'in' ? `From ${truncate(tx.from)}` :
-                         `To ${truncate(tx.to)}`}
-                      </p>
-                      <p className="text-xs" style={{ color: '#CBD5E1' }}>{timeAgo(tx.block_timestamp)}</p>
+                    <div className="text-right">
+                      {isTokenOp ? (
+                        <>
+                          <p className="text-sm font-bold" style={{ color: '#7c3aed' }}>-{(tx.fee / SENTRI).toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
+                          <p className="text-xs" style={{ color: '#CBD5E1' }}>SRX fee</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-bold" style={{ color: tx.direction === 'out' ? '#EF4444' : '#10b981' }}>
+                            {tx.direction === 'out' ? '-' : '+'}
+                            {(tx.amount / SENTRI).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                          </p>
+                          <p className="text-xs" style={{ color: '#CBD5E1' }}>SRX</p>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold" style={{ color: tx.direction === 'out' ? '#EF4444' : '#10b981' }}>
-                      {tx.direction === 'out' ? '-' : '+'}
-                      {(tx.amount / SENTRI).toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                    </p>
-                    <p className="text-xs" style={{ color: '#CBD5E1' }}>SRX</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -81,6 +81,10 @@ export async function signTransaction(
   }
 }
 
+export function isValidAddress(addr: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(addr);
+}
+
 export function isValidPrivateKey(hex: string): boolean {
   try {
     if (hex.length !== 64) return false;
